@@ -77,7 +77,6 @@ export class AuthService {
     const payload = { email: user.email, sub: user.id };
 
     user.password = undefined;
-    user.chats = undefined;
 
     return {
       ...user,
