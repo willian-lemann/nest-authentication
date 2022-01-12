@@ -20,13 +20,32 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string) {
-    const user = this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
     });
 
     return user;
+  }
+
+  async acceptRegulation(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    user.accepted_regulation = true;
+
+    const { accepted_regulation } = await this.prisma.user.update({
+      data: user,
+      where: {
+        id: userId,
+      },
+    });
+
+    return { accepted_regulation };
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {

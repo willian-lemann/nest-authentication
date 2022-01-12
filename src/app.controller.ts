@@ -11,10 +11,14 @@ import { LocalAuthGuard } from './modules/auth/guards/local-auth.guard';
 
 import { AuthService } from './modules/auth/auth.service';
 import { CreateUserDto } from './modules/users/dto/create-user.dto';
+import { UsersService } from './modules/users/users.service';
 
 @Controller()
 export class AppController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
 
   @UseGuards(LocalAuthGuard)
   @Post('auth/login')
@@ -31,5 +35,11 @@ export class AppController {
   @Get('profile')
   getProfile(@Request() request) {
     return this.authService.getUserProfile(request.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('/accept_regulation')
+  acceptRegulation(@Request() request) {
+    return this.usersService.acceptRegulation(request.user.userId);
   }
 }

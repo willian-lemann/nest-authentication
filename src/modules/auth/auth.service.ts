@@ -44,6 +44,7 @@ export class AuthService {
   async register(createUserDto: CreateUserDto) {
     const newUser = createUserDto;
 
+    console.log(newUser.email);
     const user = await this.usersService.findOneByEmail(newUser.email);
 
     if (user) {

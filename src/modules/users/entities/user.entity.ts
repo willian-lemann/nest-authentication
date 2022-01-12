@@ -6,5 +6,5 @@ export class User implements Prisma.UserCreateInput {
   name: string;
   email: string;
   password: string;
-  last_login_at: string | Date;
+  accepted_regulation: boolean;
 }
