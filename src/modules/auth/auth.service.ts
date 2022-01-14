@@ -12,13 +12,10 @@ import { User } from '../users/entities/user.entity';
 
 import { CreateUserDto } from '../users/dto/create-user.dto';
 
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface TokenPayload {
-  email: string;
-}
 @Injectable()
 export class AuthService {
   constructor(
@@ -43,6 +40,22 @@ export class AuthService {
     user.password = undefined;
 
     return user;
+  }
+
+  async validateRefreshToken(refresh_token: string) {
+    const refreshToken = await this.prisma.refreshToken.findFirst({
+      where: {
+        id: refresh_token,
+      },
+    });
+
+    if (!refreshToken) {
+      throw new BadRequestException('Invalid refresh token');
+    }
+
+    return {
+      userId: refreshToken.userId,
+    };
   }
 
   async register(createUserDto: CreateUserDto) {
@@ -97,6 +110,7 @@ export class AuthService {
   private async generateRefreshToken(userId: string) {
     const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRATION);
 
+    console.log('caiu aqui', expiresIn);
     const createdRefreshToken = await this.prisma.refreshToken.create({
       data: {
         userId,
@@ -107,24 +121,16 @@ export class AuthService {
     return createdRefreshToken;
   }
 
-  async generateTokenFromRefreshToken(refresh_token: string) {
-    const refreshToken = await this.prisma.refreshToken.findFirst({
-      where: {
-        id: refresh_token,
-      },
-    });
+  async createTokenFromRefreshToken(refresh_token: string) {
+    const { userId } = await this.validateRefreshToken(refresh_token);
 
-    if (!refreshToken) {
-      throw new BadRequestException('Invalid refresh token');
-    }
-
-    const user = await this.usersService.findOne(refreshToken.userId);
+    const user = await this.usersService.findOne(userId);
 
     const payload = { email: user.email, sub: user.id };
 
-    const newToken = this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload);
 
-    return newToken;
+    return { token };
   }
 
   async getUserProfile(userId: string) {

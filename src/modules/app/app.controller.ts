@@ -6,12 +6,13 @@ import {
   Get,
   Body,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
-import { LocalAuthGuard } from './modules/auth/guards/local-auth.guard';
+import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
+import { LocalAuthGuard } from '../../modules/auth/guards/local-auth.guard';
 
-import { AuthService } from './modules/auth/auth.service';
-import { CreateUserDto } from './modules/users/dto/create-user.dto';
-import { UsersService } from './modules/users/users.service';
+import { AuthService } from '../../modules/auth/auth.service';
+import { CreateUserDto } from '../../modules/users/dto/create-user.dto';
+import { UsersService } from '../../modules/users/users.service';
+import { CreateTokenDto } from './dto/create-token.dto';
 
 @Controller()
 export class AppController {
@@ -31,9 +32,11 @@ export class AppController {
     return await this.authService.register(createUserDto);
   }
 
-  @Post('auth/refresh_token')
-  async generateTokenFromRefreshToken(@Body() refreshToken: string) {
-    return await this.authService.generateTokenFromRefreshToken(refreshToken);
+  @Post('auth/refresh-token')
+  async createTokenFromRefreshToken(@Body() createTokenDto: CreateTokenDto) {
+    const { refresh_token } = createTokenDto;
+
+    return await this.authService.createTokenFromRefreshToken(refresh_token);
   }
 
   @UseGuards(JwtAuthGuard)
