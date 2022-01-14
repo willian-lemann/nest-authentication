@@ -31,6 +31,11 @@ export class AppController {
     return await this.authService.register(createUserDto);
   }
 
+  @Post('auth/refresh_token')
+  async generateTokenFromRefreshToken(@Body() refreshToken: string) {
+    return await this.authService.generateTokenFromRefreshToken(refreshToken);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() request) {

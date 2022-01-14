@@ -4,6 +4,7 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -11,10 +12,13 @@ import { User } from '../users/entities/user.entity';
 
 import { CreateUserDto } from '../users/dto/create-user.dto';
 
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+interface TokenPayload {
+  email: string;
+}
 @Injectable()
 export class AuthService {
   constructor(
@@ -79,10 +83,48 @@ export class AuthService {
 
     user.password = undefined;
 
+    const token = this.jwtService.sign(payload);
+
+    const refreshToken = await this.generateRefreshToken(user.id);
+
     return {
       ...user,
-      token: this.jwtService.sign(payload),
+      token,
+      refreshToken,
     };
+  }
+
+  private async generateRefreshToken(userId: string) {
+    const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRATION);
+
+    const createdRefreshToken = await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        expiresIn,
+      },
+    });
+
+    return createdRefreshToken;
+  }
+
+  async generateTokenFromRefreshToken(refresh_token: string) {
+    const refreshToken = await this.prisma.refreshToken.findFirst({
+      where: {
+        id: refresh_token,
+      },
+    });
+
+    if (!refreshToken) {
+      throw new BadRequestException('Invalid refresh token');
+    }
+
+    const user = await this.usersService.findOne(refreshToken.userId);
+
+    const payload = { email: user.email, sub: user.id };
+
+    const newToken = this.jwtService.sign(payload);
+
+    return newToken;
   }
 
   async getUserProfile(userId: string) {
