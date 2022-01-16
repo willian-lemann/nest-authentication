@@ -7,8 +7,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  async create(createUserDto: CreateUserDto) {
+    return await this.prisma.user.create({ data: createUserDto });
   }
 
   findAll() {
@@ -54,8 +54,13 @@ export class UsersService {
     return { accepted_regulation };
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  update(id: string, updateUserDto: UpdateUserDto) {
+    return this.prisma.user.update({
+      data: updateUserDto,
+      where: {
+        id,
+      },
+    });
   }
 
   remove(id: number) {

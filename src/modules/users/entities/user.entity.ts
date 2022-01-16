@@ -7,4 +7,5 @@ export class User implements Prisma.UserCreateInput {
   email: string;
   password: string;
   accepted_regulation: boolean;
+  refresh_token?: string;
 }

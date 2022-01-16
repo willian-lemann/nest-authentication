@@ -1,10 +1,7 @@
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -15,7 +12,12 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import * as dayjs from 'dayjs';
 
+interface IRefreshPayload {
+  expiresIn: number;
+  userId: string;
+}
 @Injectable()
 export class AuthService {
   constructor(
@@ -43,25 +45,48 @@ export class AuthService {
   }
 
   async validateRefreshToken(refresh_token: string) {
-    const refreshToken = await this.prisma.refreshToken.findFirst({
-      where: {
-        id: refresh_token,
-      },
-    });
+    const decodedRefreshToken = this.jwtService.decode(
+      refresh_token,
+    ) as IRefreshPayload;
 
-    if (!refreshToken) {
+    if (!decodedRefreshToken) {
       throw new BadRequestException('Invalid refresh token');
     }
 
+    const { expiresIn, userId } = decodedRefreshToken;
+
+    const hasUserWithTheRefreshToken = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!hasUserWithTheRefreshToken) {
+      throw new BadRequestException('Invalid refresh token');
+    }
+
+    const hasRefreshTokenExpired = dayjs().isAfter(dayjs.unix(expiresIn));
+
+    if (hasRefreshTokenExpired) {
+      const newRefreshToken = await this.generateRefreshToken(userId);
+
+      const updatedUser = await this.usersService.update(userId, {
+        refresh_token: newRefreshToken,
+      });
+
+      return {
+        userId: updatedUser.id,
+      };
+    }
+
     return {
-      userId: refreshToken.userId,
+      userId: hasUserWithTheRefreshToken.id,
     };
   }
 
   async register(createUserDto: CreateUserDto) {
     const newUser = createUserDto;
 
-    console.log(newUser.email);
     const user = await this.usersService.findOneByEmail(newUser.email);
 
     if (user) {
@@ -98,27 +123,38 @@ export class AuthService {
 
     const token = this.jwtService.sign(payload);
 
-    const refreshToken = await this.generateRefreshToken(user.id);
+    const { refresh_token } = await this.usersService.findOne(user.id);
+
+    if (refresh_token) {
+      return {
+        ...user,
+        token,
+      };
+    }
+
+    await this.generateRefreshToken(user.id);
 
     return {
       ...user,
       token,
-      refreshToken,
     };
   }
 
   private async generateRefreshToken(userId: string) {
-    const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRATION);
+    const expiresIn = dayjs().add(15, 'second').unix();
 
-    console.log('caiu aqui', expiresIn);
-    const createdRefreshToken = await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        expiresIn,
-      },
+    const refreshTokenPayload = {
+      userId,
+      expiresIn,
+    };
+
+    const refreshToken = this.jwtService.sign(refreshTokenPayload);
+
+    const updatedUser = await this.usersService.update(userId, {
+      refresh_token: refreshToken,
     });
 
-    return createdRefreshToken;
+    return updatedUser.refresh_token;
   }
 
   async createTokenFromRefreshToken(refresh_token: string) {
@@ -126,11 +162,13 @@ export class AuthService {
 
     const user = await this.usersService.findOne(userId);
 
+    user.password = undefined;
+
     const payload = { email: user.email, sub: user.id };
 
     const token = this.jwtService.sign(payload);
 
-    return { token };
+    return { user, token };
   }
 
   async getUserProfile(userId: string) {
