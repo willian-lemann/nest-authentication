@@ -142,7 +142,9 @@ export class AuthService {
   }
 
   private async generateRefreshToken(userId: string) {
-    const expiresIn = dayjs().add(7, 'day').unix();
+    const expiresValue = Number(process.env.REFRESH_TOKEN_EXPIRATION);
+
+    const expiresIn = dayjs().add(expiresValue, 'day').unix();
 
     const refreshTokenPayload = {
       userId,
