@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Body,
+  Put,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { LocalAuthGuard } from '../../modules/auth/guards/local-auth.guard';
@@ -37,6 +38,11 @@ export class AppController {
     const { refresh_token } = createTokenDto;
 
     return await this.authService.createTokenFromRefreshToken(refresh_token);
+  }
+
+  @Put('auth/logout')
+  async logOut(@Body('id') id: string) {
+    return await this.authService.logOut(id);
   }
 
   @UseGuards(JwtAuthGuard)

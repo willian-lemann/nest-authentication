@@ -132,16 +132,17 @@ export class AuthService {
       };
     }
 
-    await this.generateRefreshToken(user.id);
+    const newRefreshtoken = await this.generateRefreshToken(user.id);
 
     return {
       ...user,
+      refresh_token: newRefreshtoken,
       token,
     };
   }
 
   private async generateRefreshToken(userId: string) {
-    const expiresIn = dayjs().add(15, 'second').unix();
+    const expiresIn = dayjs().add(7, 'day').unix();
 
     const refreshTokenPayload = {
       userId,
@@ -168,7 +169,11 @@ export class AuthService {
 
     const token = this.jwtService.sign(payload);
 
-    return { user, token };
+    return { ...user, token };
+  }
+
+  async logOut(userId: string) {
+    await this.usersService.update(userId, { refresh_token: null });
   }
 
   async getUserProfile(userId: string) {
