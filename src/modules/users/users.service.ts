@@ -7,12 +7,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
-    return await this.prisma.user.create({ data: createUserDto });
-  }
-
-  findAll() {
-    return `This action returns all users`;
+  async findAll() {
+    const users = await this.prisma.user.findMany();
+    return users;
   }
 
   async findOne(id: string) {
@@ -23,6 +20,10 @@ export class UsersService {
     });
 
     return user;
+  }
+
+  async create(createUserDto: CreateUserDto) {
+    return await this.prisma.user.create({ data: createUserDto });
   }
 
   async findOneByEmail(email: string) {
@@ -54,8 +55,8 @@ export class UsersService {
     return { accepted_regulation };
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    return await this.prisma.user.update({
       data: updateUserDto,
       where: {
         id,
@@ -63,8 +64,8 @@ export class UsersService {
     });
   }
 
-  remove(id: string) {
-    return this.prisma.user.delete({
+  async remove(id: string) {
+    return await this.prisma.user.delete({
       where: {
         id,
       },
