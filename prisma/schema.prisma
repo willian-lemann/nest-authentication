@@ -6,16 +6,110 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  relationMode      = "prisma"
 }
 
 model User {
-  id                  String   @id @default(uuid())
-  avatar              String?
-  name                String
-  email               String   @unique
-  password            String
-  accepted_regulation Boolean? @default(false)
-  refresh_token       String?
+  id                    String      @unique @default(uuid())
+  avatar                String?
+  name                  String?
+  email                 String?
+  userId                String      @unique
+  isVerified            Boolean     @default(false)
+  hasFinishedOnboarding Boolean     @default(false)
+  role                  Role?       @relation(fields: [roleId], references: [id])
+  roleId                String?
+  onboarding            Onboarding? @relation(fields: [onboardingId], references: [id])
+  onboardingId          String?     @unique
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Onboarding {
+  id          String @unique @default(uuid())
+  currentStep Int
+  user        User?
+  userId      String @unique
+
+  @@index([userId])
+  @@map("onboarding")
+}
+
+model Role {
+  id   String @unique @default(uuid())
+  role String
+  user User[]
+
+  @@map("roles")
+}
+
+model Property {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  price              Float
+  isActive           Boolean
+  squareMeters       Float
+  numberOfRooms      Int
+  parkingQuantity    Int
+  bathroomQuantity   Int
+  address            String
+  latitude           Float
+  longitude          Float
+  iptuValue          Float
+  condoValue         Float
+  type               PropertyType       @relation(fields: [propertyTypeId], references: [id])
+  features           PropertyFeatures[]
+  photos             PropertyPhotos[]
+  propertyTypeId     Int
+  propertyFeaturesId Int
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+
+  @@index([propertyTypeId, propertyFeaturesId])
+  @@map("properties")
+}
+
+model PropertyPhotos {
+  id         Int       @id @default(autoincrement())
+  photo      String
+  storageId  String
+  property   Property? @relation(fields: [propertyId], references: [id])
+  propertyId Int?
+
+  @@index([propertyId])
+  @@map("property_photos")
+}
+
+model PropertyFeatures {
+  id        Int        @id @default(autoincrement())
+  name      String
+  property  Property[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@map("property_features")
+}
+
+model PropertyType {
+  id        Int        @id @default(autoincrement())
+  name      String?
+  property  Property[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+
+  @@map("property_types")
+}
+
+model PropertyOwner {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  @@map("property_onwers")
 }

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@/infra/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
@@ -23,11 +24,22 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
-    return await this.prisma.user.create({ data: createUserDto });
+    // validate user
+
+    const user = new User();
+    user.email = createUserDto.email;
+    user.name = createUserDto.name;
+    user.isVerified = createUserDto.isVerified;
+    user.role = { connect: { id: '123' } };
+    user.userId = createUserDto.userId;
+
+    // await this.onboardingService.changeCurrentStep(1, {});
+
+    return this.prisma.user.create({ data: user });
   }
 
   async findOneByEmail(email: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         email,
       },
@@ -36,28 +48,9 @@ export class UsersService {
     return user;
   }
 
-  async acceptRegulation(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
-
-    user.accepted_regulation = true;
-
-    const { accepted_regulation } = await this.prisma.user.update({
-      data: user,
-      where: {
-        id: userId,
-      },
-    });
-
-    return { accepted_regulation };
-  }
-
   async update(id: string, updateUserDto: UpdateUserDto) {
     return await this.prisma.user.update({
-      data: updateUserDto,
+      data: {},
       where: {
         id,
       },

@@ -3,15 +3,17 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CustomGuard } from '../auth/guards/custom.auth.guard';
 
+@UseGuards(CustomGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -19,16 +21,6 @@ export class UsersController {
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     return await this.usersService.create(createUserDto);
-  }
-
-  @Get()
-  async findAll() {
-    return await this.usersService.findAll();
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.usersService.findOne(id);
   }
 
   @Put(':id')
